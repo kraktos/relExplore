@@ -20,11 +20,11 @@ import com.hp.hpl.jena.query.ResultSetFormatter;
 
 public class Test {
 
-	private static final double HOPS = 6;
+	private static double HOPS = 0;
 	static Set<String> setQueryKeyWords = new HashSet<String>();
 	private static boolean ALARM = false;
 	static String ROOT = null;// "http://dbpedia.org/resource/Albert_Einstein";
-	private static DijkstraShortestPath path = null;
+	private static DijkstraShortestPath<String, DefaultEdge> path = null;
 
 	/**
 	 * The starting point for the demo.
@@ -36,6 +36,7 @@ public class Test {
 
 		ROOT = args[0];
 		String endNode = args[1];// "http://dbpedia.org/resource/Euro";
+		HOPS = 2 * Integer.parseInt(args[2]);
 
 		DirectedGraph<String, DefaultEdge> g = new SimpleDirectedGraph<String, DefaultEdge>(
 				DefaultEdge.class);
@@ -74,17 +75,19 @@ public class Test {
 				String obj = solution.get("obj").toString();
 
 				if (obj.indexOf("http://dbpedia.org/resource/") != -1
+						&& obj.indexOf("http://dbpedia.org/resource/Category:") == -1
 						&& !setQueryKeyWords.contains(obj)) {
 
 					// just for one triple, create this graph
 					addToGraph(startNode, g, rel, obj);
 
-					path = new DijkstraShortestPath(g, ROOT, obj);
+					path = new DijkstraShortestPath<String, DefaultEdge>(g,
+							ROOT, obj);
 
-					System.out.println(path.getPathLength() + "\t" + ROOT
-							+ "\t" + obj);
+					// System.out.println(path.getPathLength() + "\t" + ROOT
+					// + "\t" + obj);
 
-					if (path.getPathLength() >= HOPS) {
+					if (path.getPathLength() > HOPS) {
 						return;
 					} else {
 						setQueryKeyWords.add(obj);
@@ -126,13 +129,15 @@ public class Test {
 			List<DefaultEdge> edges = DijkstraShortestPath.findPathBetween(g,
 					start, end);
 
-			System.out.println(edges);
+			// System.out.println(edges);
 			for (DefaultEdge edge : edges) {
 				String edgeVal = edge.toString().replaceAll("\\(", "")
 						.replaceAll("\\)", "");
+
+				System.out.println(edgeVal);
+
 				String[] strArr = edgeVal.split("\\s:\\s");
 				if (flag) {
-					// System.out.println(strArr[1]);
 					if (!listRels.contains(strArr[1]))
 						listRels.add(strArr[1]);
 					flag = false;
@@ -146,7 +151,7 @@ public class Test {
 			}
 		}
 
-		System.out.println(g.toString());
+		// System.out.println(g.toString());
 		System.out.println(listRels);
 	}
 
