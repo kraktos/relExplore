@@ -18,148 +18,153 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.query.ResultSetFormatter;
 
-public class Test {
+/**
+ * class to find relation between two nodes in a KB
+ * 
+ * @author Arnab Dutta
+ */
+public class Test
+{
+//
+    private static double HOPS = 0;
 
-	private static double HOPS = 0;
-	static Set<String> setQueryKeyWords = new HashSet<String>();
-	private static boolean ALARM = false;
-	static String ROOT = null;// "http://dbpedia.org/resource/Albert_Einstein";
-	private static DijkstraShortestPath<String, DefaultEdge> path = null;
+    static Set<String> setQueryKeyWords = new HashSet<String>();
 
-	/**
-	 * The starting point for the demo.
-	 * 
-	 * @param args
-	 *            ignored.
-	 */
-	public static void main(String[] args) {
+    private static boolean ALARM = false;
 
-		ROOT = args[0];
-		String endNode = args[1];// "http://dbpedia.org/resource/Euro";
-		HOPS = 2 * Integer.parseInt(args[2]);
+    static String ROOT = null;
 
-		DirectedGraph<String, DefaultEdge> g = new SimpleDirectedGraph<String, DefaultEdge>(
-				DefaultEdge.class);
+    private static DijkstraShortestPath<String, DefaultEdge> path = null;
 
-		setQueryKeyWords.add(ROOT);
+    /**
+     * The starting point for the demo.
+     * 
+     * @param args ignored.
+     */
+    public static void main(String[] args)
+    {
 
-		doQuery(ROOT, g, endNode);
+        ROOT = args[0];
+        String endNode = args[1];// "http://dbpedia.org/resource/Euro";
+        HOPS = 2 * Integer.parseInt(args[2]);
 
-		// System.out.println(g.toString());
+        DirectedGraph<String, DefaultEdge> g = new SimpleDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
 
-		findRelations(g, ROOT, endNode);
-	}
+        setQueryKeyWords.add(ROOT);
 
-	public static void doQuery(String startNode, Graph<String, DefaultEdge> g,
-			String endNode) {
+        doQuery(ROOT, g, endNode);
 
-		if (!ALARM) {
+        // System.out.println(g.toString());
 
-			g.addVertex(startNode);
+        findRelations(g, ROOT, endNode);
+    }
 
-			// System.out.println("Querying for = " + startNode);
+    public static void doQuery(String startNode, Graph<String, DefaultEdge> g, String endNode)
+    {
 
-			String sparqlQueryString1 = "select ?pred ?obj where {<"
-					+ startNode
-					+ "> ?pred ?obj. ?pred <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty>}";
+        if (!ALARM) {
 
-			Query query = QueryFactory.create(sparqlQueryString1);
-			QueryExecution qexec = QueryExecutionFactory.sparqlService(
-					"http://dbpedia.org/sparql", query);
+            g.addVertex(startNode);
 
-			ResultSet results = qexec.execSelect();
-			List<QuerySolution> e = ResultSetFormatter.toList(results);
+            // System.out.println("Querying for = " + startNode);
 
-			for (QuerySolution solution : e) {
-				String rel = solution.get("pred").toString();
-				String obj = solution.get("obj").toString();
+            String sparqlQueryString1 =
+                "select ?pred ?obj where {<"
+                    + startNode
+                    + "> ?pred ?obj. ?pred <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty>}";
 
-				if (obj.indexOf("http://dbpedia.org/resource/") != -1
-						&& obj.indexOf("http://dbpedia.org/resource/Category:") == -1
-						&& !setQueryKeyWords.contains(obj)) {
+            Query query = QueryFactory.create(sparqlQueryString1);
+            QueryExecution qexec = QueryExecutionFactory.sparqlService("http://dbpedia.org/sparql", query);
 
-					// just for one triple, create this graph
-					addToGraph(startNode, g, rel, obj);
+            ResultSet results = qexec.execSelect();
+            List<QuerySolution> e = ResultSetFormatter.toList(results);
 
-					path = new DijkstraShortestPath<String, DefaultEdge>(g,
-							ROOT, obj);
+            for (QuerySolution solution : e) {
+                String rel = solution.get("pred").toString();
+                String obj = solution.get("obj").toString();
 
-					// System.out.println(path.getPathLength() + "\t" + ROOT
-					// + "\t" + obj);
+                if (obj.indexOf("http://dbpedia.org/resource/") != -1
+                    && obj.indexOf("http://dbpedia.org/resource/Category:") == -1 && !setQueryKeyWords.contains(obj)) {
 
-					if (path.getPathLength() > HOPS) {
-						return;
-					} else {
-						setQueryKeyWords.add(obj);
+                    // just for one triple, create this graph
+                    addToGraph(startNode, g, rel, obj);
 
-						doQuery(obj, g, endNode);
-					}
-				}
+                    path = new DijkstraShortestPath<String, DefaultEdge>(g, ROOT, obj);
 
-				if (ALARM)
-					return;
+                    // System.out.println(path.getPathLength() + "\t" + ROOT
+                    // + "\t" + obj);
 
-				if (obj.equals(endNode)) {
-					ALARM = true;
-					return;
-				}
+                    if (path.getPathLength() > HOPS) {
+                        return;
+                    } else {
+                        setQueryKeyWords.add(obj);
 
-			}
+                        doQuery(obj, g, endNode);
+                    }
+                }
 
-			qexec.close();
-		} else {
-			return;
-		}
-	}
+                if (ALARM)
+                    return;
 
-	/**
-	 * Graph is constructed.. now query for paths
-	 * 
-	 * @param g
-	 * @param start
-	 * @param end
-	 */
-	private static void findRelations(DirectedGraph<String, DefaultEdge> g,
-			String start, String end) {
+                if (obj.equals(endNode)) {
+                    ALARM = true;
+                    return;
+                }
 
-		boolean flag = true;
-		List<String> listRels = new ArrayList<String>();
+            }
 
-		if (g.containsVertex(end)) {
-			List<DefaultEdge> edges = DijkstraShortestPath.findPathBetween(g,
-					start, end);
+            qexec.close();
+        } else {
+            return;
+        }
+    }
 
-			// System.out.println(edges);
-			for (DefaultEdge edge : edges) {
-				String edgeVal = edge.toString().replaceAll("\\(", "")
-						.replaceAll("\\)", "");
+    /**
+     * Graph is constructed.. now query for paths
+     * 
+     * @param g
+     * @param start
+     * @param end
+     */
+    private static void findRelations(DirectedGraph<String, DefaultEdge> g, String start, String end)
+    {
 
-				System.out.println(edgeVal);
+        boolean flag = true;
+        List<String> listRels = new ArrayList<String>();
 
-				String[] strArr = edgeVal.split("\\s:\\s");
-				if (flag) {
-					if (!listRels.contains(strArr[1]))
-						listRels.add(strArr[1]);
-					flag = false;
-				} else {
-					// System.out.println(strArr[0]);
-					if (!listRels.contains(strArr[0]))
-						listRels.add(strArr[0]);
-					flag = true;
-				}
+        if (g.containsVertex(end)) {
+            List<DefaultEdge> edges = DijkstraShortestPath.findPathBetween(g, start, end);
 
-			}
-		}
+            // System.out.println(edges);
+            for (DefaultEdge edge : edges) {
+                String edgeVal = edge.toString().replaceAll("\\(", "").replaceAll("\\)", "");
 
-		// System.out.println(g.toString());
-		System.out.println(listRels);
-	}
+                System.out.println(edgeVal);
 
-	private static void addToGraph(String instance,
-			Graph<String, DefaultEdge> g, String rel, String obj) {
-		g.addVertex(rel);
-		g.addVertex(obj);
-		g.addEdge(instance, rel);
-		g.addEdge(rel, obj);
-	}
+                String[] strArr = edgeVal.split("\\s:\\s");
+                if (flag) {
+                    if (!listRels.contains(strArr[1]))
+                        listRels.add(strArr[1]);
+                    flag = false;
+                } else {
+                    // System.out.println(strArr[0]);
+                    if (!listRels.contains(strArr[0]))
+                        listRels.add(strArr[0]);
+                    flag = true;
+                }
+
+            }
+        }
+
+        // System.out.println(g.toString());
+        System.out.println(listRels);
+    }
+
+    private static void addToGraph(String instance, Graph<String, DefaultEdge> g, String rel, String obj)
+    {
+        g.addVertex(rel);
+        g.addVertex(obj);
+        g.addEdge(instance, rel);
+        g.addEdge(rel, obj);
+    }
 }
