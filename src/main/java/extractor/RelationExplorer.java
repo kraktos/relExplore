@@ -1,14 +1,10 @@
 package extractor;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -383,13 +379,18 @@ public class RelationExplorer {
 	 */
 	public static void main(String[] args) {
 
-		RelationExplorer relExp = new RelationExplorer(
-				"http://dbpedia.org/resource/" + args[0],
-				"http://dbpedia.org/resource/" + args[1],
-				Integer.valueOf(args[2]));
+		// Check how many arguments were passed in
+		if (args.length != 3) {
+			System.out.println("Proper Usage is: java -jar pathFinder.jar <entity_1> <entity_2> <maximum_hops>");
+			System.exit(0);
+		} else {
+			RelationExplorer relExp = new RelationExplorer(
+					"http://dbpedia.org/resource/" + args[0],
+					"http://dbpedia.org/resource/" + args[1],
+					Integer.valueOf(args[2]));
 
-		System.out.println(relExp.init());
-
+			System.out.println(relExp.init());
+		}
 	}
 
 }
