@@ -55,6 +55,7 @@ public class RelationExplorer
 
     public ArrayList<String> init()
     {
+
         ALARM = false;
         this.ROOT = this.staringNode;
 
@@ -68,6 +69,7 @@ public class RelationExplorer
 
     public void kill()
     {
+
         this.executor.shutdown();
 
         try {
@@ -98,59 +100,62 @@ public class RelationExplorer
     public void doExploration(final String startNode, final String endNode)
     {
 
-        delay();
+        try {
+            if (!ALARM) {
 
-        if (!ALARM) {
+                addVertexToGraph(startNode);
 
-            addVertexToGraph(startNode);
+                // get the adjacent entuty nodes
+                List<QuerySolution> resultSet = getAdjacentNodes(startNode);
 
-            // get the adjacent entuty nodes
-            List<QuerySolution> resultSet = getAdjacentNodes(startNode);
+                for (QuerySolution solution : resultSet) {
 
-            for (QuerySolution solution : resultSet) {
+                    String rel = solution.get("pred").toString();
+                    final String obj = solution.get("obj").toString();
 
-                String rel = solution.get("pred").toString();
-                final String obj = solution.get("obj").toString();
+                    // System.out.println(rel + "\t" + obj);
 
-                // System.out.println(rel + "\t" + obj);
+                    if (obj.indexOf("http://dbpedia.org/resource/") != -1
+                        && obj.indexOf("http://dbpedia.org/resource/Category:") == -1 && !isInSet(obj)) {
 
-                if (obj.indexOf("http://dbpedia.org/resource/") != -1
-                    && obj.indexOf("http://dbpedia.org/resource/Category:") == -1 && !isInSet(obj)) {
+                        addToList(obj);
 
-                    addToList(obj);
+                        // just for one triple, create this graph
+                        addToGraph(startNode, rel, obj);
 
-                    // just for one triple, create this graph
-                    addToGraph(startNode, rel, obj);
-
-                    if (obj.equals(endNode)) {
-                        ALARM = true;
-                        return;
-                    } else {
-
-                        DijkstraShortestPath<String, DefaultEdge> path =
-                            new DijkstraShortestPath<String, DefaultEdge>(graph, this.ROOT, obj);
-
-                        if (getShortestPathLength(obj) <= this.hops) {
-                            // create workers for each result node
-                            this.executor.execute(new Runnable()
-                            {
-                                public void run()
-                                {
-                                    doExploration(obj, endNode);
-                                }
-                            });
-                        } else
+                        if (obj.equals(endNode)) {
+                            ALARM = true;
                             return;
+                        } else {
 
+                            DijkstraShortestPath<String, DefaultEdge> path =
+                                new DijkstraShortestPath<String, DefaultEdge>(graph, this.ROOT, obj);
+
+                            if (getShortestPathLength(obj) <= this.hops) {
+                                // create workers for each result node
+                                this.executor.execute(new Runnable()
+                                {
+                                    public void run()
+                                    {
+                                        doExploration(obj, endNode);
+                                    }
+                                });
+                            } else
+                                return;
+
+                        }
                     }
+
+                    if (ALARM)
+                        return;
+
                 }
+            } else
+                return;
+        } catch (Exception e) {
 
-                if (ALARM)
-                    return;
-
-            }
-        } else
-            return;
+            e.printStackTrace();
+        }
 
     }
 
@@ -164,10 +169,10 @@ public class RelationExplorer
         }
     }
 
-    private void delay()
+    private static void delay(int delay)
     {
         try {
-            Thread.sleep(500);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -220,7 +225,10 @@ public class RelationExplorer
             String sparqlQueryString =
                 "select distinct ?pred ?obj where {<" + startNode
                     + "> ?pred ?obj. ?pred <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
-                    + "<http://www.w3.org/2002/07/owl#ObjectProperty>} ";
+                    + "<http://www.w3.org/2002/07/owl#ObjectProperty>} LIMIT 500";
+
+            delay(300);
+
             Query query = QueryFactory.create(sparqlQueryString);
             qexec = QueryExecutionFactory.sparqlService("http://dbpedia.org/sparql", query);
             ResultSet results = qexec.execSelect();
