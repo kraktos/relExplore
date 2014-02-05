@@ -46,7 +46,7 @@ public class RelationExplorer
 
     public RelationExplorer(String dbSubj, String dbObj, int hops)
     {
-        this.executor = Executors.newFixedThreadPool(30);
+        this.executor = Executors.newFixedThreadPool(300);
 
         this.staringNode = dbSubj;
         this.endingNode = dbObj;
@@ -55,15 +55,18 @@ public class RelationExplorer
 
     public ArrayList<String> init()
     {
+        try {
+            ALARM = false;
+            this.ROOT = this.staringNode;
 
-        ALARM = false;
-        this.ROOT = this.staringNode;
+            vectorOfQueryTerms.add(this.ROOT);
 
-        vectorOfQueryTerms.add(this.ROOT);
+            doExploration(this.ROOT, this.endingNode);
 
-        doExploration(this.ROOT, this.endingNode);
-
-        return findRelations(this.ROOT, this.endingNode);
+            return findRelations(this.ROOT, this.endingNode);
+        } finally {
+            this.kill();
+        }
 
     }
 
@@ -73,7 +76,8 @@ public class RelationExplorer
         this.executor.shutdown();
 
         try {
-            this.executor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            while (!this.executor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS)) {
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
