@@ -120,7 +120,7 @@ public class RelationExplorer {
 		// initiate the exploration
 		doExploration(this.ROOT, this.endingNode);
 
-		while (this.threadPoolExecutor.getQueue().size() != 0) {
+		while (this.threadPoolExecutor.getQueue().size() != 0 || this.threadPoolExecutor.getActiveCount() != 0) {
 		}
 		return findRelations(this.ROOT, this.endingNode);
 
@@ -161,6 +161,7 @@ public class RelationExplorer {
 				// get the adjacent entity nodes
 				List<QuerySolution> resultSet = getAdjacentNodes(startNode);
 
+//				System.out.println(startNode + "\t" + resultSet.size());
 				// iterate over all its vertices
 				for (QuerySolution solution : resultSet) {
 
