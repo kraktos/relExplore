@@ -82,6 +82,11 @@ public class RelationExplorer
 
     long keepAliveTime = 5000;
 
+    /**
+     * maximum time out to fetch relationship
+     */
+    private static final int TIMEOUT = 5;
+
     private ThreadPoolExecutor threadPoolExecutor;
 
     // = new ThreadPoolExecutor(
@@ -124,9 +129,14 @@ public class RelationExplorer
         // clear up the vector for each initiation
         vectorOfQueryTerms = new Vector<String>();
         vectorOfQueryTerms.add(this.ROOT);
-        
+
         // initiate the exploration
         doExploration(this.ROOT, this.endingNode);
+
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() < (start + TIMEOUT * 1000)) {
+        }
+        this.threadPoolExecutor.shutdown();
 
         // wait for all other threads in the pool to finish
         while (this.threadPoolExecutor.getQueue().size() != 0 || this.threadPoolExecutor.getActiveCount() != 0) {
@@ -214,7 +224,6 @@ public class RelationExplorer
                 return;
         } catch (Exception e) {
 
-            e.printStackTrace();
         }
 
     }
@@ -303,7 +312,7 @@ public class RelationExplorer
             String sparqlQueryString =
                 "select distinct ?pred ?obj where {<" + startNode
                     + "> ?pred ?obj. ?pred <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
-                    + "<http://www.w3.org/2002/07/owl#ObjectProperty>} LIMIT 500";
+                    + "<http://www.w3.org/2002/07/owl#ObjectProperty>} LIMIT 20";
 
             // DBpedia apparently doesn't allow repeated calls at a rate more
             // than some threshold requests/secd
